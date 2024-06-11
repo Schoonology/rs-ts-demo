@@ -1,0 +1,22 @@
+{
+  "name": "rs-ts-demo",
+  "version": "1.0.0",
+  "description": "Demo of a mixed Rust/TypeScript application.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Schoonmaker <hello@schoonology.com>",
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recoil": "^0.7.7"
+  }
+}

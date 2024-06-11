@@ -5,12 +5,13 @@ use axum::{
     http::StatusCode,
     response::{
         sse::{Event, KeepAlive},
-        IntoResponse, Response, Sse,
+        Html, IntoResponse, Response, Sse,
     },
     routing::get,
     Json, Router,
 };
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
+use tower_http::services::ServeDir;
 
 use crate::{
     errors::Result,
@@ -22,10 +23,18 @@ use crate::{
  */
 pub fn create(state: AppState) -> Router {
     Router::new()
-        .route("/", get(stream_updates))
+        .route("/", get(index))
         .route("/updates", get(stream_updates))
         .route("/posts", get(fetch_posts).post(append_post))
+        .nest_service("/public", ServeDir::new("public"))
         .with_state(state)
+}
+
+/**
+ * Renders and returns the index HTML.
+ */
+async fn index() -> impl IntoResponse {
+    Html(include_str!("./frontend/index.html"))
 }
 
 /**
@@ -191,6 +200,26 @@ mod tests {
         assert_eq!(
             response.headers().get("Content-Type"),
             Some(&HeaderValue::from_static("text/event-stream"))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_index() {
+        let response = subject()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("Content-Type"),
+            Some(&HeaderValue::from_static("text/html; charset=utf-8"))
         );
     }
 }
