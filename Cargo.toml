@@ -6,7 +6,12 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.86"
 axum = "0.7.5"
+chrono = { features = ["serde"], version = "0.4.38" }
 envconfig = "0.10.0"
+serde = "1.0.203"
+serde_derive = "1.0.203"
+serde_json = "1.0.117"
 tokio = "1.38.0"
+tokio-stream = { features = ["sync"], version = "0.1.15" }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
