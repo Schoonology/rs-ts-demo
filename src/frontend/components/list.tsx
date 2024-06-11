@@ -4,9 +4,11 @@ import React from "react";
 
 function Message(post: Post) {
   return (
-    <li>
-      <p>{post.message}</p>
-      <p>{post.timestamp}</p>
+    <li className="border-l-4 border-cyan-400 my-3 pl-3 py-1">
+      <p className="font-bold text-cyan-950 text-lg">{post.message}</p>
+      <p className="opacity-65 text-sm">
+        Posted at {new Date(post.timestamp).toISOString()}
+      </p>
     </li>
   );
 }

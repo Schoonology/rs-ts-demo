@@ -8,8 +8,11 @@ function Index() {
   return (
     <RecoilRoot>
       <Suspense>
-        <Form></Form>
-        <List></List>
+        <div className="container m-auto my-12">
+          <h1 className="mb-6 text-3xl text-center">Rust / TypeScript demo</h1>
+          <Form></Form>
+          <List></List>
+        </div>
       </Suspense>
     </RecoilRoot>
   );

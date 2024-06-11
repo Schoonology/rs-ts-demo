@@ -35,17 +35,25 @@ export function Form() {
   return (
     <form onSubmit={onSubmit}>
       <p className="text-red">{error}</p>
-      <label htmlFor="message">
-        <input
-          className="p-3"
-          type="text"
-          name="message"
-          placeholder="Message"
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-        />
-      </label>
-      <button type="submit">Submit</button>
+      <div className="flex flex-col md:flex-row gap-3">
+        <label className="md:flex-1" htmlFor="message">
+          <input
+            className="border border-cyan-400 p-3 rounded-md w-full"
+            type="text"
+            name="message"
+            placeholder="Message"
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+          />
+        </label>
+        <button
+          className="bg-cyan-900 px-6 py-3 rounded-md text-white"
+          disabled={sending}
+          type="submit"
+        >
+          Submit
+        </button>
+      </div>
     </form>
   );
 }
