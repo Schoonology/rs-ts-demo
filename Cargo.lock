@@ -528,11 +528,13 @@ dependencies = [
  "axum",
  "chrono",
  "envconfig",
+ "http-body-util",
  "serde",
  "serde_derive",
  "serde_json",
  "tokio",
  "tokio-stream",
+ "tower",
  "tracing",
  "tracing-subscriber",
 ]

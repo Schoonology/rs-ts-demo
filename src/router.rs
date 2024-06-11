@@ -2,6 +2,7 @@ use std::convert::Infallible;
 
 use axum::{
     extract::State,
+    http::StatusCode,
     response::{
         sse::{Event, KeepAlive},
         IntoResponse, Response, Sse,
@@ -16,8 +17,12 @@ use crate::{
     state::{AppState, Post},
 };
 
+/**
+ * Returns an axum-compatible Router for the HTTP API.
+ */
 pub fn create(state: AppState) -> Router {
     Router::new()
+        .route("/", get(stream_updates))
         .route("/updates", get(stream_updates))
         .route("/posts", get(fetch_posts).post(append_post))
         .with_state(state)
@@ -61,12 +66,131 @@ async fn fetch_posts(
  * Pushes a new post into storage, as well as broadcasting the update.
  */
 async fn append_post(
-    State(AppState { messages, updates }): State<AppState>,
+    State(AppState {
+        messages, updates, ..
+    }): State<AppState>,
     Json(post): Json<Post>,
 ) -> Result<impl IntoResponse> {
     messages.lock().await.push(post.clone());
 
     updates.send(post)?;
 
-    Ok(())
+    Ok((StatusCode::NO_CONTENT, ""))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{
+        body::Body,
+        http::{HeaderValue, Request, Response, StatusCode},
+        Router,
+    };
+    use serde_json::json;
+    use tower::{Service, ServiceExt};
+
+    /**
+     * Creates a Router for testing.
+     */
+    fn subject() -> Router {
+        super::create(crate::state::AppState::new())
+    }
+
+    /**
+     * Reads collects the HTTP entity from `response` into a String.
+     *
+     * Panics on _any_ error.
+     */
+    async fn body_from_response(response: Response<Body>) -> String {
+        use http_body_util::BodyExt as _;
+
+        String::from_utf8(
+            response
+                .into_body()
+                .collect()
+                .await
+                .unwrap()
+                .to_bytes()
+                .into(),
+        )
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_empty_get() {
+        let response = subject()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/posts")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(body_from_response(response).await, "[]");
+    }
+
+    #[tokio::test]
+    async fn test_read_after_write() {
+        let mut router = subject().into_service();
+        let response = router
+            .call(
+                Request::builder()
+                    .method("POST")
+                    .uri("/posts")
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(
+                        json!({
+                            "message": "This is a test.",
+                            "timestamp": 42
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        assert_eq!(body_from_response(response).await, "");
+
+        let response = router
+            .call(
+                Request::builder()
+                    .method("GET")
+                    .uri("/posts")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            body_from_response(response).await,
+            "[{\"message\":\"This is a test.\",\"timestamp\":42}]"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sse_headers() {
+        let response = subject()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/updates")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("Content-Type"),
+            Some(&HeaderValue::from_static("text/event-stream"))
+        );
+    }
 }
